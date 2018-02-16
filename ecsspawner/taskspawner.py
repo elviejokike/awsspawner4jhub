@@ -93,7 +93,7 @@ class EcsTaskSpawner(Spawner):
 
         task = yield self.get_task()
         if task is None:
-            ip_address = yield self.create_new_task()
+            ip_address = yield self._create_new_task()
             return ip_address, self.port
 
 
@@ -104,10 +104,28 @@ class EcsTaskSpawner(Spawner):
 
         task = yield self.get_task()
         if task:
-            self.ecs_client.stop_task(
-                cluster=self.cluster_name,
-                task=task['taskArn']
-            )
+
+            if self.ecs_task_on_ec2_instance:
+                # Stop the Instance Itself
+                container_instance_arn = task['containerInstanceArn']
+                container_instance = self.ecs_client.describe_container_instances(
+                    cluster=self.cluster_name,
+                    containerInstances=[
+                        container_instance_arn
+                    ]
+                )['containerInstances'][0]
+
+                self.ec2_client.terminate_instances(InstanceIds=[
+                        container_instance['ec2InstanceId']
+                    ],
+                    DryRun=False
+                )
+            else:
+                # Only Stop the task
+                self.ecs_client.stop_task(
+                    cluster=self.cluster_name,
+                    task=task['taskArn']
+                )
 
         else:
             self.log.info("No ECS task found to be stopped %s" % self.user.name)
@@ -144,7 +162,7 @@ class EcsTaskSpawner(Spawner):
 
 
     @gen.coroutine
-    def create_new_task(self):
+    def _create_new_task(self):
 
         if self.ecs_task_on_ec2_instance:
 
@@ -192,7 +210,6 @@ class EcsTaskSpawner(Spawner):
 
         else:
             raise ValueError('Work in progress for ECS only')
-        #return instance['PublicIpAddress']
 
     @gen.coroutine
     def _create_instance(self):
