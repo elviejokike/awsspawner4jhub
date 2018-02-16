@@ -102,7 +102,7 @@ class EcsTaskSpawner(Spawner):
         self.log.info("function stop called for %s" % self.user.name)
         self.user_task = None
 
-        task = self.get_task()
+        task = yield self.get_task()
         if task:
             self.ecs_client.stop_task(
                 cluster=self.cluster_name,
@@ -117,7 +117,8 @@ class EcsTaskSpawner(Spawner):
     @gen.coroutine
     def poll(self):
         self.log.debug("function poll for user %s" % self.user.name)
-        if self.get_task():
+        task = yield self.get_task()
+        if task:
             return None # Still running
         else:
             return 0
