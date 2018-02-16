@@ -25,7 +25,6 @@ class EcsTaskSpawner(Spawner):
         self.log.info("function create_new_instance %s" % self.user.name)
         self.ecs_client = boto3.client('ecs')
         self.ec2_client = boto3.client('ec2')
-        self.cluster_name = os.environ.get('AWS_CLUSTER', 'pathis-dev-ecs-cluster-notebook1')
 
         self.task_name = self._expand_user_properties(self.task_name_template)
 
@@ -50,6 +49,19 @@ class EcsTaskSpawner(Spawner):
     ecs_task_on_ec2_instance = Bool(True,
         help="""
             Indicates if the ECS Spawner mechanism must create an EC2 instance itself, or let ECS to choose one for us.
+        """
+    ).tag(config=True)
+
+    ecs_task_definition = Unicode("",
+        help="""
+            Name of the Task Definition to be used when running the task.
+        """
+    ).tag(config=True)
+
+    ec2_instance_template = Unicode("",
+        help="""
+            Name of the EC2 Instance Template to be used when creaing a EC2 Instance.
+            This property is used when ecs_task_on_ec2_instance is set to True.
         """
     ).tag(config=True)
 
@@ -167,10 +179,7 @@ class EcsTaskSpawner(Spawner):
         if self.ecs_task_on_ec2_instance:
 
             self.log.info("function create new task for user %s" % self.user.name)
-            task_def =  yield self._get_task_definition()
-
-            response = self.ecs_client.register_task_definition(**task_def)
-            task_def_arn = response['taskDefinition']['taskDefinitionArn']
+            task_def_arn =  yield self._get_task_definition()
 
             instance = yield self._create_instance()
 
@@ -222,7 +231,7 @@ class EcsTaskSpawner(Spawner):
             MaxCount=1,
             KeyName='pathis-dev-eu-central-1',
             LaunchTemplate={
-                'LaunchTemplateName':'thisonefirst'
+                'LaunchTemplateName':self.ec2_instance_template
             },
             UserData="#!/bin/bash \n echo ECS_CLUSTER=" + self.cluster_name + " >> /etc/ecs/ecs.config",
             NetworkInterfaces=[
@@ -260,8 +269,15 @@ class EcsTaskSpawner(Spawner):
 
     @gen.coroutine
     def _get_task_definition(self):
-
+        """
+        Return the Arn of the Task Definition to be used when creating the task
+        :return:
+        """
         self.log.info("function get task definition for user %s" % self.user.name)
+
+        if self.ecs_task_definition != '':
+            task_def= self.ecs_client.describe_task_definition(taskDefinition=self.ecs_task_definition)['taskDefinition']
+            return task_def['taskDefinitionArn']
 
         task_def = {
             'family': 'hello-world',
@@ -286,7 +302,11 @@ class EcsTaskSpawner(Spawner):
                 }
             ]
         }
-        return task_def
+
+        response = self.ecs_client.register_task_definition(**task_def)
+        task_def_arn = response['taskDefinition']['taskDefinitionArn']
+
+        return task_def_arn
 
 
     def _get_task_identifier(self):
