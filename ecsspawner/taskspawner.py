@@ -9,7 +9,8 @@ from jupyterhub.spawner import Spawner
 from tornado import gen
 from traitlets import (
     Integer,
-    Unicode
+    Unicode,
+    Bool
 )
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,18 @@ class EcsTaskSpawner(Spawner):
             """
         )
     )
+
+    cluster_name = Unicode("",
+       help="""
+            Cluster Name to be used for the Spawner
+       """
+    ).tag(config=True)
+
+    ecs_task_on_ec2_instance = Bool(True,
+        help="""
+            Indicates if the ECS Spawner mechanism must create an EC2 instance itself, or let ECS to choose one for us.
+        """
+    ).tag(config=True)
 
     ip = Unicode('0.0.0.0',
         help="""
@@ -86,46 +99,76 @@ class EcsTaskSpawner(Spawner):
 
     @gen.coroutine
     def stop(self, now=False):
+        self.log.info("function stop called for %s" % self.user.name)
         self.user_task = None
+
+        task = self.get_task()
+        if task:
+            self.ecs_client.stop_task(
+                cluster=self.cluster_name,
+                task=task['taskArn']
+            )
+
+        else:
+            self.log.info("No ECS task found to be stopped %s" % self.user.name)
+
         self.clear_state()
 
     @gen.coroutine
     def poll(self):
         self.log.debug("function poll for user %s" % self.user.name)
-        if self.user_task:
-            return None
+        if self.get_task():
+            return None # Still running
         else:
             return 0
 
 
     @gen.coroutine
     def get_task(self):
-        return None
+        tasks = self.ecs_client.list_tasks(
+            cluster=self.cluster_name,
+            startedBy=self._get_task_identifier(),
+            desiredStatus='RUNNING'
+        )
+        if tasks and len(tasks['taskArns']) > 0:
+            return self.ecs_client.describe_tasks(
+                cluster=self.cluster_name,
+                tasks=[
+                    tasks['taskArns'][0]
+                ]
+
+            )['tasks'][0]
+        else:
+            return None
+
 
     @gen.coroutine
     def create_new_task(self):
-        self.log.info("function create new task for user %s" % self.user.name)
 
-        task_def =  yield self._get_task_definition()
+        if self.ecs_task_on_ec2_instance:
 
-        response = self.ecs_client.register_task_definition(**task_def)
-        task_def_arn = response['taskDefinition']['taskDefinitionArn']
+            self.log.info("function create new task for user %s" % self.user.name)
+            task_def =  yield self._get_task_definition()
 
-        instance = yield self._create_instance()
+            response = self.ecs_client.register_task_definition(**task_def)
+            task_def_arn = response['taskDefinition']['taskDefinitionArn']
 
-        selected_container_instance = yield self._get_container_instance(instance['InstanceId'])
+            instance = yield self._create_instance()
 
-        env = self.get_env()
-        env['JPY_USER'] = self.user.name
-        env['JPY_BASE_URL'] = self.user.server.base_url
-        env['JPY_COOKIE_NAME'] = self.user.server.cookie_name
+            selected_container_instance = yield self._get_container_instance(instance['InstanceId'])
 
-        container_env = self._expand_env(env)
+            env = self.get_env()
+            env['JPY_USER'] = self.user.name
+            env['JPY_BASE_URL'] = self.user.server.base_url
+            env['JPY_COOKIE_NAME'] = self.user.server.cookie_name
 
-        self.log.info("starting ecs task for user %s" % self.user.name)
+            container_env = self._expand_env(env)
 
-        task = self.ecs_client.start_task(taskDefinition=task_def_arn,
-               cluster=self.cluster_name,
+            self.log.info("starting ecs task for user %s" % self.user.name)
+
+            task = self.ecs_client.start_task(taskDefinition=task_def_arn,
+               cluster = self.cluster_name,
+               startedBy = self._get_task_identifier(),
                overrides={
                    'containerOverrides': [
                        {
@@ -134,16 +177,20 @@ class EcsTaskSpawner(Spawner):
                        }
                    ]
                },
-               containerInstances = [selected_container_instance['containerInstanceArn']])['tasks'][0]
+               containerInstances = [selected_container_instance['containerInstanceArn']]
+            )['tasks'][0]
 
-        waiter = self.ecs_client.get_waiter('tasks_running')
-        waiter.wait(cluster=self.cluster_name, tasks=[task['taskArn']])
+            waiter = self.ecs_client.get_waiter('tasks_running')
+            waiter.wait(cluster=self.cluster_name, tasks=[task['taskArn']])
 
-        self.user_task = task
+            self.user_task = task
 
-        self.log.info("ecs task up and running for %s" % self.user.name)
+            self.log.info("ecs task up and running for %s" % self.user.name)
 
-        return instance['NetworkInterfaces'][0]['PrivateIpAddress']
+            return instance['NetworkInterfaces'][0]['PrivateIpAddress']
+
+        else:
+            raise ValueError('Work in progress for ECS only')
         #return instance['PublicIpAddress']
 
     @gen.coroutine
@@ -222,6 +269,14 @@ class EcsTaskSpawner(Spawner):
             ]
         }
         return task_def
+
+
+    def _get_task_identifier(self):
+        """
+        Return Task identifier
+        :return:
+        """
+        return 'EcsTaskSpawner:'+ self.user.name
 
     def _expand_env(self, env):
         """
