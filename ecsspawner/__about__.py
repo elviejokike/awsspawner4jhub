@@ -20,6 +20,6 @@ __all__ = ("__version__", "__author__", "__url__")
 
 __version__ = VERSION
 
-__author__ = 'me@philips.com'
+__author__ = 'me@world.com'
 
-__url__ = "https://www.philips.com/"
+__url__ = "https://www.world.com/"
