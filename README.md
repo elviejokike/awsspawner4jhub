@@ -8,5 +8,5 @@ ECS Spawner for Jupyter HUB
 ## Spawner Configuration
 
 c.JupyterHub.spawner_class = 'ecsspawner.EcsTaskSpawner'
-
+c.Spawner.cluster_name = 'MyClusterName'
 ```
