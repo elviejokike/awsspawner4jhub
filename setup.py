@@ -19,6 +19,7 @@ setup(
     author_email = 'kike@world.com',
     description = 'ECS/AWS Spawner for Jupyter Hub',
     keywords = 'ECS AWS Jupyter Hub',
+    install_requires=['jupyterhub==0.7.2','boto3==1.5.24','escapism==1.0.0','peewee==3.0.15'],
     packages=find_packages(exclude=['tests*','examples*']),
     classifiers=[
         'Programming Language :: Python :: 2.7',
