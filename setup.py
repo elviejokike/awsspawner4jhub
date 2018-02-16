@@ -16,9 +16,9 @@ setup(
     author = about['__author__'],
     url=about['__url__'],
     license="Apache License 2.0",
-    author_email = 'adp@philips.com',
-    description = 'ADP Jupyter Hub',
-    keywords = 'ADP Jupyter Hub',
+    author_email = 'kike@world.com',
+    description = 'ECS/AWS Spawner for Jupyter Hub',
+    keywords = 'ECS AWS Jupyter Hub',
     packages=find_packages(exclude=['tests*','examples*']),
     classifiers=[
         'Programming Language :: Python :: 2.7',
