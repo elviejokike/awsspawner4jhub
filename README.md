@@ -1,9 +1,8 @@
 # ECS / AWS Spawner for Juputer HUB
-ECS Spawner for Jupyter HUB
 
 [![Build Status](https://travis-ci.org/elviejokike/ecsspawner.svg?branch=master)](https://travis-ci.org/elviejokike/ecsspawner)
 
-
+The ecsspawner (also known as JupyterHub ECS/AWS Spawner) enables JupyterHub to spawn single-user notebook servers on a ECS cluster in AWS.
 
 ### How to
 
