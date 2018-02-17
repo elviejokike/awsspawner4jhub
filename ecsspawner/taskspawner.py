@@ -229,18 +229,10 @@ class EcsTaskSpawner(Spawner):
             # Use the official ECS image
             MinCount=1,
             MaxCount=1,
-            KeyName='pathis-dev-eu-central-1',
             LaunchTemplate={
                 'LaunchTemplateName':self.ec2_instance_template
             },
-            UserData="#!/bin/bash \n echo ECS_CLUSTER=" + self.cluster_name + " >> /etc/ecs/ecs.config",
-            NetworkInterfaces=[
-                {
-                    'AssociatePublicIpAddress': True,
-                    'DeviceIndex': 0,
-                    'SubnetId': 'subnet-e30aa088'
-                }
-            ]
+            UserData="#!/bin/bash \n echo ECS_CLUSTER=" + self.cluster_name + " >> /etc/ecs/ecs.config"
         )['Instances'][0]
 
         waiter = self.ec2_client.get_waiter('instance_status_ok')
@@ -335,8 +327,7 @@ class EcsTaskSpawner(Spawner):
     def get_env(self):
         env = super().get_env()
 
-        env['JPY_HUB_API_URL'] = 'http://' + os.environ.get('HUB_HOST_IP', None) + ':8080/jupyter/hub/api'
-        # env['JPY_HUB_API_URL'] = self.hub.api_url
+        env['JPY_HUB_API_URL'] = self.hub.api_url
         env['JPY_HUB_PREFIX'] = self.hub.server.base_url
 
 
