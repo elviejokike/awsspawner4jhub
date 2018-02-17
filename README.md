@@ -1,6 +1,9 @@
 # ECS / AWS Spawner for Juputer HUB
 ECS Spawner for Jupyter HUB
 
+[![Build Status](https://travis-ci.org/elviejokike/ecsspawner.svg?branch=master)](https://travis-ci.org/elviejokike/ecsspawner)
+
+
 
 ### How to
 
