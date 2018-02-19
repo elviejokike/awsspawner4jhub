@@ -3,7 +3,16 @@ from setuptools import setup, find_packages
 setup(
     name='ecsspawner',
     version = '0.0.1',
-    author ='elviejokike',
+    author='Kike',
+    url='https://github.com/elviejokike/ecsspawner',
+    keywords=[
+          'Juputer',
+          'Juputer HUB',
+          'AWS',
+          'ECS',
+          'EC2',
+          'Spawner'
+    ],
     license="MIT",
     author_email = 'kike@world.com',
     description = 'ECS/AWS Spawner for Jupyter Hub',
