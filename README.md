@@ -12,21 +12,28 @@ The ecsspawner (also known as JupyterHub ECS/AWS Spawner) enables JupyterHub to 
 c.JupyterHub.spawner_class = 'ecsspawner.EcsTaskSpawner'
 ```
 
-### Cluster Name Configuration
+### Spawner Configuration
+
+**strategy**: Defines the spawning mechanism to be used. Possible values are
+
+- ECSSpawnerHandler:
+- EC2SpawnerHandler:
+- ECSxEC2SpawnerHandler:
+
+**cluster_name**: When using ECS spawning mechanim, a cluster name is mandatory
+
+**ecs_task_definition**: When using ECS spawning mechanim, a task definition string is mandatory. The task definition must point to a definition where a jupyter notebook is instantiated.
+
+**ec2_instance_template**: When using EC2/ECSxEC2 mechanism, an AWS launch template is required to determine for EC2 instantiation.
 
 ```python
-c.Spawner.cluster_name = 'MyClusterName'
+c.Spawner.strategy = 'ECSxEC2SpawnerHandler'
+c.Spawner.strategy_parms = {
+    'cluster_name': os.environ.get('AWS_CLUSTER', 'pathis-dev-ecs-cluster-notebook1'),
+    'ec2_instance_template': 'demo01',
+    'ecs_task_definition': 'hello-world:230',
+    'port': 8888
+}
 ```
-### ECS Task Definition
 
-```python
-c.Spawner.ecs_task_definition = 'MyTaskDefinition'
-```
-
-### Create Single EC2 instance for each task
-
-```python
-c.Spawner.ecs_task_on_ec2_instance = True
-c.Spawner.ec2_instance_template = 'My EC2 Template'
-```
 
