@@ -293,10 +293,9 @@ class ECSSpawnerHandler(SpawnerHandler):
     def get_env(self):
         env = super().get_env()
 
-        env['JPY_HUB_API_URL'] = 'http://' + os.environ.get('HUB_HOST_IP', None) + ':8080/jupyter/hub/api'
+        env['JPY_HUB_API_URL'] = 'http://' + os.environ.get('HUB_HOST_IP', '127.0.0.1') + ':8080/jupyter/hub/api'
         # env['JPY_HUB_API_URL'] = self.hub.api_url
         env['JPY_HUB_PREFIX'] = self.hub.server.base_url
-
 
         env.update(dict(
             JPY_USER=self.user.name,
