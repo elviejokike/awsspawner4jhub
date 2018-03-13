@@ -1,7 +1,6 @@
 import logging
 import os
 import string
-from textwrap import dedent
 
 import boto3
 import escapism
@@ -19,6 +18,9 @@ logging.basicConfig(level=logging.INFO)
 
 
 class EcsTaskSpawner(Spawner):
+    """
+    ECS Task Spawner
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -27,24 +29,29 @@ class EcsTaskSpawner(Spawner):
         self.ecs_client = boto3.client('ecs')
         self.ec2_client = boto3.client('ec2')
 
-
-    strategy = Unicode("ECSxEC2SpawnerHandler",
+    strategy = Unicode(
+        "ECSxEC2SpawnerHandler",
+        config=True,
         help="""
-            Indicates if the ECS Spawner mechanism must create an EC2 instance itself, or let ECS to choose one for us.
+        Indicates if the ECS Spawner mechanism must create an EC2 instance itself, or let ECS to choose one for us.
         """
-    ).tag(config=True)
+    )
 
-    strategy_parms = Dict({},
-      help="""
-            Strategy parameters.
-        """
-    ).tag(config=True)
-
-    ip = Unicode('0.0.0.0',
+    strategy_parms = Dict(
+        {},
+        config=True,
         help="""
-            The IP address (or hostname) the single-user server should listen on.
+        Strategy parameters.
         """
-    ).tag(config=True)
+    )
+
+    ip = Unicode(
+        '0.0.0.0',
+        config=True,
+        help="""
+        The IP address (or hostname) the single-user server should listen on.
+        """
+    )
 
     def _get_spawner_handler(self):
         """
@@ -59,7 +66,6 @@ class EcsTaskSpawner(Spawner):
             return EC2SpawnerHandler(self, **self.strategy_parms)
 
         raise ValueError("Strategy not properly specified")
-
 
     @gen.coroutine
     def start(self):
@@ -113,12 +119,15 @@ class EC2SpawnerHandler(SpawnerHandler):
     """
         Using EC2
     """
-    ec2_instance_template = Unicode("",
+    ec2_instance_template = Unicode(
+        "",
+        config=True,
         help="""
-            Name of the EC2 Instance Template to be used when creaing a EC2 Instance.
-            This property is used when ecs_task_on_ec2_instance is set to True.
+        Name of the EC2 Instance Template to be used when creaing a EC2 Instance.
+        This property is used when ecs_task_on_ec2_instance is set to True.
         """
-    ).tag(config=True)
+    )
+
     def __init__(self, spawner, ec2_instance_template, **kwargs):
         super().__init__(spawner, **kwargs)
         self.ec2_instance_template = ec2_instance_template
@@ -140,11 +149,14 @@ class ECSSpawnerHandler(SpawnerHandler):
     """
         Using ECS Task:
     """
-    ecs_task_definition = Unicode("",
+    ecs_task_definition = Unicode(
+        "",
+        config=True,
         help="""
             Name of the Task Definition to be used when running the task.
         """
-    ).tag(config=True)
+    )
+
     def __init__(self, spawner, cluster_name, ecs_task_definition, **kwargs):
         super().__init__(spawner)
         self.cluster_name = cluster_name
@@ -156,9 +168,7 @@ class ECSSpawnerHandler(SpawnerHandler):
         if task is None:
             ip_address = yield self._create_new_task()
             return ip_address, self.port
-        # TODO
-
-
+        raise ValueError('Not handled yet')
 
     @gen.coroutine
     def stop(self):
@@ -197,7 +207,7 @@ class ECSSpawnerHandler(SpawnerHandler):
         Return Task identifier
         :return:
         """
-        return 'EcsTaskSpawner:'+ self.user.name
+        return 'EcsTaskSpawner:' + self.user.name
 
     @gen.coroutine
     def _create_new_task(self):
@@ -214,16 +224,16 @@ class ECSSpawnerHandler(SpawnerHandler):
         self.log.info("starting ecs task for user %s" % self.user.name)
 
         task = self.ecs_client.run_task(taskDefinition=task_def_arn,
-                                          cluster=self.cluster_name,
-                                          startedBy=self._get_task_identifier(),
-                                          overrides={
-                                              'containerOverrides': [
-                                                  {
-                                                      'name': 'hello-world',
-                                                      'environment': container_env
-                                                  }
-                                              ]
-                                          })['tasks'][0]
+                                        cluster=self.cluster_name,
+                                        startedBy=self._get_task_identifier(),
+                                        overrides={
+                                            'containerOverrides': [
+                                                {
+                                                    'name': 'hello-world',
+                                                    'environment': container_env
+                                                }
+                                            ]
+                                        })['tasks'][0]
 
         waiter = self.ecs_client.get_waiter('tasks_running')
         waiter.wait(cluster=self.cluster_name, tasks=[task['taskArn']])
@@ -256,7 +266,7 @@ class ECSSpawnerHandler(SpawnerHandler):
                     'image': 'jupyter/scipy-notebook:ae885c0a6226',
                     'portMappings': [
                         {
-                            'containerPort': self.port,
+                            'containerPort': 8888,
                             'hostPort': 8888,
                             'protocol': 'tcp'
                         }
@@ -272,7 +282,6 @@ class ECSSpawnerHandler(SpawnerHandler):
         task_def_arn = response['taskDefinition']['taskDefinitionArn']
 
         return task_def_arn
-
 
     def _expand_env(self, env):
         """
@@ -293,7 +302,7 @@ class ECSSpawnerHandler(SpawnerHandler):
     def get_env(self):
         env = super().get_env()
 
-        env['JPY_HUB_API_URL'] = 'http://' + os.environ.get('HUB_HOST_IP', '127.0.0.1') + ':8080/jupyter/hub/api'
+        env['JPY_HUB_API_URL'] = 'http://' + os.environ.get('HUB_HOST_IP', '127.0.0.1') + ':8081/jupyter/hub/api'
         # env['JPY_HUB_API_URL'] = self.hub.api_url
         env['JPY_HUB_PREFIX'] = self.hub.server.base_url
 
@@ -311,19 +320,36 @@ class ECSxEC2SpawnerHandler(ECSSpawnerHandler):
     """
         Using single EC2 Instance for every ECS Task
     """
-    ec2_instance_template = Unicode("",
+    ec2_instance_template = Unicode(
+        "",
+        config=True,
         help="""
-            Name of the EC2 Instance Template to be used when creaing a EC2 Instance
+        Name of the EC2 Instance Template to be used when creaing a EC2 Instance
         """
-    ).tag(config=True)
-    port = Integer(8888,
+    )
+
+    ec2_instance_template_version = Unicode(
+        "",
+        config=True,
         help="""
-            Default port to 8888
+        Version of the EC2 Instance Template to be used when creaing a EC2 Instance
         """
-    ).tag(config=True)
-    def __init__(self, spawner, ec2_instance_template=None, port=8888, **kwargs):
+    )
+
+    port = Integer(
+        8888,
+        help="""
+        Default port to 8888
+        """
+    )
+
+    def __init__(self, spawner, ec2_instance_template=None,
+                 ec2_instance_template_version='1',
+                 port=8888, **kwargs):
+
         super().__init__(spawner, **kwargs)
         self.ec2_instance_template = ec2_instance_template
+        self.ec2_instance_template_version = ec2_instance_template_version
         if port:
             self.port = port
 
@@ -384,17 +410,17 @@ class ECSxEC2SpawnerHandler(ECSSpawnerHandler):
         self.log.info("starting ecs task for user %s" % self.user.name)
 
         task = self.ecs_client.start_task(taskDefinition=task_def_arn,
-           cluster = self.cluster_name,
-           startedBy = self._get_task_identifier(),
+           cluster=self.cluster_name,
+           startedBy=self._get_task_identifier(),
            overrides={
                'containerOverrides': [
                    {
-                       'name': 'hello-world',
+                       'name': 'adp-notebook-ecs',
                        'environment': container_env
                    }
                ]
            },
-           containerInstances = [selected_container_instance['containerInstanceArn']]
+           containerInstances=[selected_container_instance['containerInstanceArn']]
         )['tasks'][0]
 
         waiter = self.ecs_client.get_waiter('tasks_running')
@@ -404,20 +430,40 @@ class ECSxEC2SpawnerHandler(ECSSpawnerHandler):
 
         return instance['NetworkInterfaces'][0]['PrivateIpAddress']
 
-
     @gen.coroutine
     def _create_instance(self):
 
         self.log.info("function create instance for user %s" % self.user.name)
+        environment_name = os.environ.get('HUB_ENVIRONMENT', 'JupyterHUB')
+        ec2_name = environment_name + '-' + self.user.name
 
         instance = self.ec2_client.run_instances(
             # Use the official ECS image
             MinCount=1,
             MaxCount=1,
             LaunchTemplate={
-                'LaunchTemplateName':self.ec2_instance_template
+                'LaunchTemplateName': self.ec2_instance_template,
+                'Version': self.ec2_instance_template_version
             },
-            UserData="#!/bin/bash \n echo ECS_CLUSTER=" + self.cluster_name + " >> /etc/ecs/ecs.config"
+            TagSpecifications=[
+                {
+                    'ResourceType': 'instance',
+                    'Tags': [
+                        {
+                            'Key': 'Name',
+                            'Value': ec2_name
+                        },
+                        {
+                            'Key': 'Environment',
+                            'Value': environment_name
+                        },
+                        {
+                            'Key': 'Project',
+                            'Value': os.environ.get('HUB_PROJECT', 'JupyterHUB-Project')
+                        },
+                    ]
+                },
+            ]
         )['Instances'][0]
 
         waiter = self.ec2_client.get_waiter('instance_status_ok')
