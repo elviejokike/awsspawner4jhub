@@ -1,6 +1,7 @@
 import logging
 import os
 import string
+from concurrent.futures import ThreadPoolExecutor
 
 import boto3
 import escapism
@@ -53,6 +54,14 @@ class EcsTaskSpawner(Spawner):
         """
     )
 
+    @property
+    def executor(self):
+        """single global executor"""
+        cls = self.__class__
+        if cls._executor is None:
+            cls._executor = ThreadPoolExecutor(1)
+        return cls._executor
+
     def _get_spawner_handler(self):
         """
         Return the right handler based on the strategy
@@ -70,8 +79,11 @@ class EcsTaskSpawner(Spawner):
     @gen.coroutine
     def start(self):
         self.log.info("function start for user %s" % self.user.name)
+        handler = self._get_spawner_handler()
 
-        return (yield self._get_spawner_handler().start())
+        result = yield self.executor.submit(handler.start)
+
+        return result
 
     @gen.coroutine
     def stop(self, now=False):

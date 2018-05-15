@@ -9,7 +9,7 @@ The ecsspawner (also known as JupyterHub ECS/AWS Spawner) enables JupyterHub to 
 ```python
 ## Spawner Configuration
 
-c.JupyterHub.spawner_class = 'ecsspawner.EcsTaskSpawner'
+c.JupyterHub.spawner_class = 'awsspawner.EcsTaskSpawner'
 ```
 
 ### Spawner Configuration
