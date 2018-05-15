@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='ecsspawner',
+    name='awsspawner',
     version = '0.0.1',
     author='Kike',
-    url='https://github.com/elviejokike/ecsspawner',
+    url='https://github.com/elviejokike/awsspawner4jhub',
     keywords=[
           'Juputer',
           'Juputer HUB',
@@ -15,8 +15,8 @@ setup(
     ],
     license="MIT",
     author_email = 'kike@world.com',
-    description = 'ECS/AWS Spawner for Jupyter Hub',
-    install_requires=['jupyterhub==0.7.2','boto3==1.5.24','escapism==1.0.0','peewee==3.0.15'],
+    description = 'ECS/EC2/AWS Spawner for Jupyter Hub',
+    install_requires=['jupyterhub>=0.8.1','boto3==1.5.24','escapism==1.0.0','peewee==3.0.15'],
     packages=find_packages(exclude=['tests*','examples*']),
     classifiers=[
         'Programming Language :: Python :: 2.7',
