@@ -29,7 +29,7 @@ c.JupyterHub.spawner_class = 'awsspawner.EcsTaskSpawner'
 ```python
 c.Spawner.strategy = 'ECSxEC2SpawnerHandler'
 c.Spawner.strategy_parms = {
-    'cluster_name': os.environ.get('AWS_CLUSTER', 'pathis-dev-ecs-cluster-notebook1'),
+    'cluster_name': os.environ.get('AWS_CLUSTER', 'notebook-cluster'),
     'ec2_instance_template': 'demo01',
     'ecs_task_definition': 'hello-world:230',
     'port': 8888
