@@ -11,8 +11,8 @@ container orchestration service which allows us to easily run and scale containe
 
 #### ECS Task
 
-Jupyter Notebooks are instantiated using ECS Tasks. A *Task** is the mechanism offered by Amazon
-ECS to encapsulate containers allowing us to specificy the charateristics of the tasks using
+Jupyter Notebooks are instantiated using ECS Tasks. A *Task* is the mechanism offered by Amazon
+ECS to encapsulate containers allowing us to specificy its charateristics using
 [Task definitions](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definitions.html).
 
 A task definition includes:
